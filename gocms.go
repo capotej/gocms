@@ -10,45 +10,76 @@ import (
 	"io/ioutil"
 )
 
-func main() {
-	var templateFile = flag.String("template", "layout.html", "Template file")
-	var inputFile = flag.String("input", "/dev/stdin", "Input file")
-	var outputFile = flag.String("output", "/dev/stdout", "Output file")
+var (
+	templateFile = flag.String("template", "layout.html", "Template file")
+	inputFile    = flag.String("input", "/dev/stdin", "Input file")
+	outputFile   = flag.String("output", "/dev/stdout", "Output file")
+)
+
+func init() {
 	flag.Parse()
+}
 
-	templateBytes, err := ioutil.ReadFile(*templateFile)
-	if err != nil {
-		panic(err)
-	}
-
-	inputBytes, err := ioutil.ReadFile(*inputFile)
-	if err != nil {
-		panic(err)
-	}
-
+func bytesToTree(inputBytes []byte) *h5.Tree {
 	inputReader := bytes.NewReader(inputBytes)
-	inputTree, _ := h5.New(inputReader)
+	inputTree, err := h5.New(inputReader)
+	if err != nil {
+		panic(err)
+	}
+	return inputTree
+}
 
-	templateReader := bytes.NewReader(templateBytes)
-	templateTree, _ := h5.New(templateReader)
-	templateTransform := transform.New(templateTree)
+func bytesFromFile(filename *string) []byte {
+	templateBytes, err := ioutil.ReadFile(*filename)
+	if err != nil {
+		panic(err)
+	}
+	return templateBytes
+}
 
-	// finds all div id's within input file an
-	inputTree.Walk(func(n *html.Node) {
-		if n.Data == "div" {
-			for _, b := range n.Attr {
-				if b.Key == "id" {
-					templateTransform.Apply(transform.Replace(h5.CloneNode(n)), fmt.Sprintf("#%s", b.Val))
-				}
+func treeFromFile(filename *string) *h5.Tree {
+	return bytesToTree(bytesFromFile(filename))
+}
+
+func findDivId(n *html.Node) bool {
+	var result = false
+	if n.Data == "div" {
+		for _, b := range n.Attr {
+			if b.Key == "id" {
+				result = true
+				return result
 			}
 		}
-	})
+	}
+	return result
+}
 
+func writeResult(templateTransform *transform.Transformer, filename *string) {
 	finalOutput := templateTransform.String()
 	finalBytes := []byte(finalOutput)
 
-	err = ioutil.WriteFile(*outputFile, finalBytes, 0644)
+	err := ioutil.WriteFile(*filename, finalBytes, 0644)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ProcessTemplateWithInput(inputFile *string, templateFile *string, outputFile *string) {
+
+	inputTree := treeFromFile(inputFile)
+	templateTree := treeFromFile(templateFile)
+
+	templateTransform := transform.New(templateTree)
+
+	inputTree.Walk(func(n *html.Node) {
+		if findDivId(n) {
+			templateTransform.Apply(transform.Replace(h5.CloneNode(n)), fmt.Sprintf("#%s", n.Attr[0].Val))
+		}
+	})
+
+	writeResult(templateTransform, outputFile)
+}
+
+func main() {
+	ProcessTemplateWithInput(inputFile, templateFile, outputFile)
 }

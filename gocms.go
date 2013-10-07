@@ -34,21 +34,48 @@ func main() {
 	templateTree, _ := h5.New(templateReader)
 	templateTransform := transform.New(templateTree)
 
-	fmt.Printf("%#v\n", templateTransform)
+	nodeMap := make(map[string]*html.Node)
+	outputMap := make(map[string]*html.Node)
 
+	// finds all div with class attributes and adds them to nodeMap
 	inputTree.Walk(func(n *html.Node) {
 		if n.Data == "div" {
-			fmt.prinln(n.Attr.Val)
-			// templateTransform.Apply(Replace(Text("my new text"), "a")
-			// fmt.Printf("%#v\n", n)
+			for _, b := range n.Attr {
+				if b.Key == "id" {
+					nodeMap[b.Val] = n
+				}
+			}
 		}
 	})
 
-	err = ioutil.WriteFile(*outputFile, inputBytes, 0644)
-	if err != nil {
-		panic(err)
+	// finds all divs with matching class inside template and replaces them with nodes in nodeMap
+	templateTree.Walk(func(n *html.Node) {
+		if n.Data == "div" {
+			for _, b := range n.Attr {
+				if b.Key == "id" {
+					if node, ok := nodeMap[b.Val]; ok {
+						outputMap[b.Val] = node
+					}
+				}
+			}
+		}
+	})
+
+	for key, node := range outputMap {
+		fmt.Println(key)
+
+		templateTransform.Apply(transform.Replace(h5.CloneNode(node)), "#main")
+		// templateTransform.Apply(transform.Replace(value), fmt.Sprintf("#%s", key))
 	}
-	err = ioutil.WriteFile(*outputFile, templateBytes, 0644)
+
+	// templateTransform.Apply(Replace(Text("my new text"), "a")
+	// fmt.Printf("%#v\n", n)
+	// fmt.Printf("%#v\n", outputMap)
+
+	finalOutput := templateTransform.String()
+	finalBytes := []byte(finalOutput)
+
+	err = ioutil.WriteFile(*outputFile, finalBytes, 0644)
 	if err != nil {
 		panic(err)
 	}

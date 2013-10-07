@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "code.google.com/p/go-html-transform/css/selector"
 	"bytes"
 	"code.google.com/p/go-html-transform/h5"
 	"code.google.com/p/go-html-transform/html/transform"
@@ -34,36 +33,16 @@ func main() {
 	templateTree, _ := h5.New(templateReader)
 	templateTransform := transform.New(templateTree)
 
-	nodeMap := make(map[string]*html.Node)
-	outputMap := make(map[string]*html.Node)
-
-	// finds all div with class attributes and adds them to nodeMap
+	// finds all div id's within input file an
 	inputTree.Walk(func(n *html.Node) {
 		if n.Data == "div" {
 			for _, b := range n.Attr {
 				if b.Key == "id" {
-					nodeMap[b.Val] = n
+					templateTransform.Apply(transform.Replace(h5.CloneNode(n)), fmt.Sprintf("#%s", b.Val))
 				}
 			}
 		}
 	})
-
-	// finds all divs with matching class inside template and replaces them with nodes in nodeMap
-	templateTree.Walk(func(n *html.Node) {
-		if n.Data == "div" {
-			for _, b := range n.Attr {
-				if b.Key == "id" {
-					if node, ok := nodeMap[b.Val]; ok {
-						outputMap[b.Val] = node
-					}
-				}
-			}
-		}
-	})
-
-	for key, node := range outputMap {
-		templateTransform.Apply(transform.Replace(h5.CloneNode(node)), fmt.Sprintf("#%s", key))
-	}
 
 	finalOutput := templateTransform.String()
 	finalBytes := []byte(finalOutput)

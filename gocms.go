@@ -17,7 +17,7 @@ import (
 var (
 	srcDir  = flag.String("src", "src", "Source directory")
 	destDir = flag.String("dest", "output", "Destination Directory")
-	server  = flag.Bool("server", false, "Start a preview server")
+	server  = flag.Bool("serve", false, "Start a preview server")
 )
 
 func init() {
@@ -88,15 +88,17 @@ func visitFileFunc(filePath string, f os.FileInfo, err error) error {
 	outputPath := filepath.Join(*destDir, inputPath)
 	templateFile := filepath.Join(*srcDir, "layout.html")
 
+	outputDir := filepath.Dir(outputPath)
+	os.MkdirAll(outputDir, 0777)
+
 	if ext == ".html" && inputPath != "/layout.html" {
-		outputDir := filepath.Dir(outputPath)
-		err := os.MkdirAll(outputDir, 0777)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("%s -> %s\n", inputPath, outputPath)
+		fmt.Printf("rendering: %s -> %s\n", inputPath, outputPath)
 		result := ProcessTemplateWithInput(filePath, templateFile)
 		writeResultToFile(result, outputPath)
+	} else if inputPath != "/layout.html" && inputPath != "" && !f.IsDir() {
+		fmt.Printf("copying: %s -> %s\n", inputPath, outputPath)
+		inputBytes := bytesFromFile(filePath)
+		ioutil.WriteFile(outputPath, inputBytes, 0644)
 	}
 
 	return nil
@@ -119,6 +121,7 @@ func ProcessDirectoryWithTemplate(srcDir string, destDir string) {
 func main() {
 	if *server {
 		fileHandler := http.FileServer(http.Dir(*destDir))
+		fmt.Println("Http Server started on :8080")
 		http.ListenAndServe(":8080", GeneratorHandler(fileHandler))
 	} else {
 		ProcessDirectoryWithTemplate(*srcDir, *destDir)

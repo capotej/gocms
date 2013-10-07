@@ -62,15 +62,8 @@ func main() {
 	})
 
 	for key, node := range outputMap {
-		fmt.Println(key)
-
-		templateTransform.Apply(transform.Replace(h5.CloneNode(node)), "#main")
-		// templateTransform.Apply(transform.Replace(value), fmt.Sprintf("#%s", key))
+		templateTransform.Apply(transform.Replace(h5.CloneNode(node)), fmt.Sprintf("#%s", key))
 	}
-
-	// templateTransform.Apply(Replace(Text("my new text"), "a")
-	// fmt.Printf("%#v\n", n)
-	// fmt.Printf("%#v\n", outputMap)
 
 	finalOutput := templateTransform.String()
 	finalBytes := []byte(finalOutput)

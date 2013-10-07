@@ -38,8 +38,9 @@ func main() {
 
 	inputTree.Walk(func(n *html.Node) {
 		if n.Data == "div" {
+			fmt.prinln(n.Attr.Val)
 			// templateTransform.Apply(Replace(Text("my new text"), "a")
-			fmt.Printf("%#v\n", n)
+			// fmt.Printf("%#v\n", n)
 		}
 	})
 

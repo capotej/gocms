@@ -8,12 +8,16 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var (
-	templateFile = flag.String("template", "layout.html", "Template file")
-	inputFile    = flag.String("input", "/dev/stdin", "Input file")
-	outputFile   = flag.String("output", "/dev/stdout", "Output file")
+	srcDir  = flag.String("src", "src", "Source directory")
+	destDir = flag.String("dest", "output", "Destination Directory")
+	server  = flag.Bool("server", false, "Start a preview server")
 )
 
 func init() {
@@ -78,7 +82,45 @@ func ProcessTemplateWithInput(inputFile string, templateFile string) string {
 	return templateTransform.String()
 }
 
+func visitFileFunc(filePath string, f os.FileInfo, err error) error {
+	ext := filepath.Ext(filePath)
+	inputPath := strings.Replace(filePath, *srcDir, "", 1)
+	outputPath := filepath.Join(*destDir, inputPath)
+	templateFile := filepath.Join(*srcDir, "layout.html")
+
+	if ext == ".html" && inputPath != "/layout.html" {
+		outputDir := filepath.Dir(outputPath)
+		err := os.MkdirAll(outputDir, 0777)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%s -> %s\n", inputPath, outputPath)
+		result := ProcessTemplateWithInput(filePath, templateFile)
+		writeResultToFile(result, outputPath)
+	}
+
+	return nil
+}
+
+func GeneratorHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ProcessDirectoryWithTemplate(*srcDir, *destDir)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func ProcessDirectoryWithTemplate(srcDir string, destDir string) {
+	err := filepath.Walk(srcDir, visitFileFunc)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
-	result := ProcessTemplateWithInput(*inputFile, *templateFile)
-	writeResultToFile(result, *outputFile)
+	if *server {
+		fileHandler := http.FileServer(http.Dir(*destDir))
+		http.ListenAndServe(":8080", GeneratorHandler(fileHandler))
+	} else {
+		ProcessDirectoryWithTemplate(*srcDir, *destDir)
+	}
 }

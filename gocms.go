@@ -54,9 +54,8 @@ func findDivId(n *html.Node) bool {
 	return result
 }
 
-func writeResult(templateTransform *transform.Transformer, filename *string) {
-	finalOutput := templateTransform.String()
-	finalBytes := []byte(finalOutput)
+func writeResultToFile(result *string, filename *string) {
+	finalBytes := []byte(*result)
 
 	err := ioutil.WriteFile(*filename, finalBytes, 0644)
 	if err != nil {
@@ -64,8 +63,7 @@ func writeResult(templateTransform *transform.Transformer, filename *string) {
 	}
 }
 
-func ProcessTemplateWithInput(inputFile *string, templateFile *string, outputFile *string) {
-
+func ProcessTemplateWithInput(inputFile *string, templateFile *string) *string {
 	inputTree := treeFromFile(inputFile)
 	templateTree := treeFromFile(templateFile)
 
@@ -77,9 +75,11 @@ func ProcessTemplateWithInput(inputFile *string, templateFile *string, outputFil
 		}
 	})
 
-	writeResult(templateTransform, outputFile)
+	result := templateTransform.String()
+	return &result
 }
 
 func main() {
-	ProcessTemplateWithInput(inputFile, templateFile, outputFile)
+	result := ProcessTemplateWithInput(inputFile, templateFile)
+	writeResultToFile(result, outputFile)
 }

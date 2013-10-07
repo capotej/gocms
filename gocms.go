@@ -29,15 +29,15 @@ func bytesToTree(inputBytes []byte) *h5.Tree {
 	return inputTree
 }
 
-func bytesFromFile(filename *string) []byte {
-	templateBytes, err := ioutil.ReadFile(*filename)
+func bytesFromFile(filename string) []byte {
+	templateBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
 	return templateBytes
 }
 
-func treeFromFile(filename *string) *h5.Tree {
+func treeFromFile(filename string) *h5.Tree {
 	return bytesToTree(bytesFromFile(filename))
 }
 
@@ -54,16 +54,16 @@ func findDivId(n *html.Node) bool {
 	return result
 }
 
-func writeResultToFile(result *string, filename *string) {
-	finalBytes := []byte(*result)
+func writeResultToFile(result string, filename string) {
+	finalBytes := []byte(result)
 
-	err := ioutil.WriteFile(*filename, finalBytes, 0644)
+	err := ioutil.WriteFile(filename, finalBytes, 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ProcessTemplateWithInput(inputFile *string, templateFile *string) *string {
+func ProcessTemplateWithInput(inputFile string, templateFile string) string {
 	inputTree := treeFromFile(inputFile)
 	templateTree := treeFromFile(templateFile)
 
@@ -75,11 +75,10 @@ func ProcessTemplateWithInput(inputFile *string, templateFile *string) *string {
 		}
 	})
 
-	result := templateTransform.String()
-	return &result
+	return templateTransform.String()
 }
 
 func main() {
-	result := ProcessTemplateWithInput(inputFile, templateFile)
-	writeResultToFile(result, outputFile)
+	result := ProcessTemplateWithInput(*inputFile, *templateFile)
+	writeResultToFile(result, *outputFile)
 }
